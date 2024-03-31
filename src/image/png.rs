@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::io::BufWriter;
 use std::path::PathBuf;
 use std::{fs::File, slice::Iter};
@@ -32,7 +31,7 @@ pub(crate) fn write_png(
     height: u32,
 ) -> Result<(), ResizedPngError> {
     let fs = File::create(path)?;
-    let ref mut w = BufWriter::new(fs);
+    let w = &mut BufWriter::new(fs);
 
     let mut encoder = Encoder::new(w, width, height);
     encoder.set_color(ColorType::Rgba);
@@ -100,7 +99,7 @@ fn buf_to_rgba(raw_bytes: &[u8], info: &Info) -> Result<Vec<u8>, ResizedPngError
                 let alpha = info
                     .trns
                     .as_ref()
-                    .and_then(|v| v.get(index).map(|v| *v))
+                    .and_then(|v| v.get(index).copied())
                     .unwrap_or(u8::MAX);
 
                 result.push(target_palette[0]);
@@ -129,7 +128,7 @@ fn read_bytes_for_bit_depth_8(buf: &[u8], info: &Info) -> Result<Vec<u8>, Resize
         BitDepth::Two => read_byte_for_bit_depth_8_when_bit_depth_two,
         BitDepth::Four => read_byte_for_bit_depth_8_when_bit_depth_four,
         BitDepth::Eight => return Ok(buf.to_vec()),
-        BitDepth::Sixteen => return Ok(buf.iter().step_by(2).map(|v| *v).collect()),
+        BitDepth::Sixteen => return Ok(buf.iter().step_by(2).copied().collect()),
     };
 
     let mut result = Vec::new();
@@ -166,8 +165,8 @@ fn read_bytes_for_bit_depth_8(buf: &[u8], info: &Info) -> Result<Vec<u8>, Resize
 }
 
 fn read_byte_for_bit_depth_8_when_bit_depth_one(t: u8, output: &mut [u8; 8]) -> usize {
-    for i in 0..8 {
-        output[i] = if (t << i) | 0b01111111 == u8::MAX {
+    for (i, element) in output.iter_mut().enumerate().take(8) {
+        *element = if (t << i) | 0b01111111 == u8::MAX {
             u8::MAX
         } else {
             0
@@ -177,7 +176,7 @@ fn read_byte_for_bit_depth_8_when_bit_depth_one(t: u8, output: &mut [u8; 8]) -> 
 }
 
 fn read_byte_for_bit_depth_8_when_bit_depth_two(t: u8, output: &mut [u8; 8]) -> usize {
-    for i in 0..4 {
+    for (i, element) in output.iter_mut().enumerate().take(4) {
         let mut v = 0;
         if (t << (i * 2)) | 0b01111111 == u8::MAX {
             v += 0b10000000;
@@ -186,13 +185,13 @@ fn read_byte_for_bit_depth_8_when_bit_depth_two(t: u8, output: &mut [u8; 8]) -> 
             v += 0b01111111;
         }
 
-        output[i] = v;
+        *element = v;
     }
     4
 }
 
 fn read_byte_for_bit_depth_8_when_bit_depth_four(t: u8, output: &mut [u8; 8]) -> usize {
-    for i in 0..2 {
+    for (i, element) in output.iter_mut().enumerate().take(2) {
         let mut v = 0;
         if (t << (i * 4)) | 0b01111111 == u8::MAX {
             v += 0b10000000;
@@ -206,7 +205,7 @@ fn read_byte_for_bit_depth_8_when_bit_depth_four(t: u8, output: &mut [u8; 8]) ->
         if (t << (i * 4 + 3)) | 0b01111111 == u8::MAX {
             v += 0b00011111;
         }
-        output[i] = v;
+        *element = v;
     }
     2
 }
@@ -256,8 +255,8 @@ fn read_byte_for_usize_when_bit_depth_one(
     output: &mut [usize; 8],
 ) -> Result<Option<usize>, ResizedPngError> {
     Ok(buf_iter.next().map(|t| {
-        for i in 0..8 {
-            output[i] = if (t << i) | 0b01111111 == u8::MAX {
+        for (i, element) in output.iter_mut().enumerate().take(8) {
+            *element = if (t << i) | 0b01111111 == u8::MAX {
                 1
             } else {
                 0
@@ -272,9 +271,9 @@ fn read_byte_for_usize_when_bit_depth_two(
     output: &mut [usize; 8],
 ) -> Result<Option<usize>, ResizedPngError> {
     Ok(buf_iter.next().map(|t| {
-        for i in 0..4 {
+        for (i, element) in output.iter_mut().enumerate().take(4) {
             // VVxxxxxx -> 000000VV
-            output[i] = (((t << (i * 2)) >> 6) & 0b00000011) as usize;
+            *element = (((t << (i * 2)) >> 6) & 0b00000011) as usize;
         }
         4
     }))
@@ -285,9 +284,9 @@ fn read_byte_for_usize_when_bit_depth_four(
     output: &mut [usize; 8],
 ) -> Result<Option<usize>, ResizedPngError> {
     Ok(buf_iter.next().map(|t| {
-        for i in 0..2 {
+        for (i, element) in output.iter_mut().enumerate().take(2) {
             // VVVVxxxx -> 0000VVVV
-            output[i] = (((t << (i * 4)) >> 4) & 0b00001111) as usize;
+            *element = (((t << (i * 4)) >> 4) & 0b00001111) as usize;
         }
         2
     }))
@@ -319,7 +318,7 @@ fn read_byte_for_usize_when_bit_depth_sixteen(
     }
 }
 
-fn split_palette(raw: &Cow<[u8]>) -> Result<Vec<[u8; 3]>, ResizedPngError> {
+fn split_palette(raw: &[u8]) -> Result<Vec<[u8; 3]>, ResizedPngError> {
     let mut result = Vec::new();
     let palette_chunked = raw.chunks(3);
 
@@ -385,6 +384,7 @@ mod tests {
 
     mod buf_to_rgba {
         use super::*;
+        use std::borrow::Cow;
 
         #[test]
         fn success_when_valid_bytes_for_grayscale() {
