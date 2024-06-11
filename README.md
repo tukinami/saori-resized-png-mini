@@ -22,7 +22,7 @@ SAORI自体の使い方は、使用するSHIORIなどによって異なります
 ここではこのSAORIの使い方について説明いたします。
 
 Argument0に、使用する機能名を指定して使用します。
-指定できる機能は`GetImageType`と`ToResizedPng`です。
+指定できる機能は`GetImageType`と`GetImageInfo`と`ToResizedPng`です。
 
 ### `GetImageType`
 
@@ -40,6 +40,14 @@ Argument0に、使用する機能名を指定して使用します。
 + `JPEG`
 + `PNG`
 + `WEBP`
+
+### `GetImageInfo`
+
++ Argument1: 情報を取得するファイルのパス
+
++ Result: Valueの情報を「,」でつなげたもの
++ Value0: 画像の幅
++ Value1: 画像の高さ
 
 ### `ToResizedPng`
 
