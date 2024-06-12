@@ -39,9 +39,15 @@ pub fn execute(path: &str, request: &SaoriRequest, response: &mut SaoriResponse)
                 if let Some(input_path_str) = args.get(1) {
                     let input_path = path.join(input_path_str);
 
-                    let (width, height) = get_image_info(&input_path);
+                    let (width, height) = match get_image_info(&input_path) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            response.set_result(format!("{}", e.to_code()));
+                            return;
+                        }
+                    };
 
-                    response.set_result(format!("{},{}", width, height));
+                    response.set_result(0.to_string());
                     response.set_value(vec![width.to_string(), height.to_string()]);
                 }
             }
