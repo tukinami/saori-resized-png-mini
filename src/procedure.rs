@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::request::*;
-use crate::resized_png::{get_image_type, to_resized_png};
+use crate::resized_png::{get_image_info, get_image_type, to_resized_png};
 use crate::response::*;
 
 /// load時に呼ばれる関数
@@ -33,6 +33,16 @@ pub fn execute(path: &str, request: &SaoriRequest, response: &mut SaoriResponse)
                     let v = get_image_type(&input_path);
 
                     response.set_result(v.to_string());
+                }
+            }
+            "GetImageInfo" => {
+                if let Some(input_path_str) = args.get(1) {
+                    let input_path = path.join(input_path_str);
+
+                    let (width, height) = get_image_info(&input_path);
+
+                    response.set_result(format!("{},{}", width, height));
+                    response.set_value(vec![width.to_string(), height.to_string()]);
                 }
             }
             "ToResizedPng" => {

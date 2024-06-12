@@ -25,6 +25,28 @@ pub(crate) fn get_image_type(src_path: &PathBuf) -> &'static str {
     "UNKNOWN"
 }
 
+pub(crate) fn get_image_info(src_path: &PathBuf) -> (i64, i64) {
+    let (_src_rgba, input_width_raw, input_height_raw) = match image::png::read_image_data(src_path)
+        .or(image::bmp::read_image_data(src_path))
+        .or(image::gif::read_image_data(src_path))
+        .or(image::jpeg::read_image_data(src_path))
+        .or(image::webp::read_image_data(src_path))
+    {
+        Ok(v) => v,
+        Err(_) => return (0, 0),
+    };
+
+    let (input_width, input_height) = match NonZeroU32::new(input_width_raw)
+        .zip(NonZeroU32::new(input_height_raw))
+        .ok_or(ResizedPngError::InputSizeError)
+    {
+        Ok(v) => v,
+        Err(_) => return (0, 0),
+    };
+
+    return (input_width.get() as i64, input_height.get() as i64);
+}
+
 pub(crate) fn to_resized_png(
     src_path: &PathBuf,
     dist_path: &PathBuf,
@@ -144,6 +166,36 @@ mod tests {
             let path =
                 PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test_target/something_wrong.png");
             assert_eq!(get_image_type(&path), "UNKNOWN");
+        }
+    }
+
+    mod get_image_info {
+        use super::*;
+
+        #[test]
+        fn get_image_info_when_image_file_exists() {
+            let path =
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test_target/image/sample.png");
+            let (width, height) = get_image_info(&path);
+            assert_eq!(width, 100);
+            assert_eq!(height, 200);
+        }
+
+        #[test]
+        fn get_image_info_when_non_image_file_exists() {
+            let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml");
+            let (width, height) = get_image_info(&path);
+            assert_eq!(width, 0);
+            assert_eq!(height, 0);
+        }
+
+        #[test]
+        fn get_image_info_when_file_does_not_exist() {
+            let path =
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test_target/something_wrong.png");
+            let (width, height) = get_image_info(&path);
+            assert_eq!(width, 0);
+            assert_eq!(height, 0);
         }
     }
 

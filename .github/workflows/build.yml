@@ -1,0 +1,45 @@
+name: build
+on:
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: i686-pc-windows-msvc
+          components: rustfmt, clippy
+          
+      - name: Build
+        run: cargo build --release --target=i686-pc-windows-msvc
+      
+      - name: Prepare for upload
+        run: |
+          mkdir artifact
+          mkdir artifact/saori-resized-png-mini
+          copy target/i686-pc-windows-msvc/release/resizedpngmini.dll artifact/saori-resized-png-mini/resizedpngmini.dll
+          copy README.md artifact/saori-resized-png-mini/README.md
+          copy LICENSE artifact/saori-resized-png-mini/LICENSE
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: saori-resized-png-mini
+          path: artifact/
