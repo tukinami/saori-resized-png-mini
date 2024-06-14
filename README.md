@@ -88,14 +88,13 @@ Argument0に、使用する機能名を指定して使用します。
 + [png](https://github.com/image-rs/image-png) / The image-rs Developers
 + [gif](https://github.com/image-rs/image-gif) / The image-rs Developers
 + [jpeg-decoder](https://github.com/image-rs/jpeg-decoder) / The image-rs Developers
-+ [libwebp-sys](https://github.com/NoXF/libwebp-sys) / XianYou, Kornel Lesiński
 + [tinybmp](https://github.com/embedded-graphics/tinybmp) / James Waples, Ralf Fuest
 + [embedded-graphics](https://github.com/embedded-graphics/embedded-graphics) / James Waples, Ralf Fuest
 + [resize](https://github.com/PistonDevelopers/resize) / Kornel, Kagami Hiiragi
 + [rgb](https://github.com/kornelski/rust-rgb) / Kornel Lesiński
++ [image-webp](https://github.com/image-rs/image-webp) / Jonathan Behrens
 + (テスト実行時) [encoding\_rs](https://github.com/hsivonen/encoding_rs) / Henri Sivonen
 + (テスト実行時) [tempfile](https://github.com/Stebalien/tempfile) / Steven Allen, The Rust Project Developers, Ashley Mannix, Jason White
-
 
 ## ライセンス
 

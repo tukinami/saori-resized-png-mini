@@ -1,32 +1,42 @@
-use core::slice;
-use std::{fs::File, io::prelude::Read, path::PathBuf};
+use std::{fs::File, io::BufReader, path::PathBuf};
 
-use libwebp_sys::{WebPDecodeRGBA, WebPGetInfo};
+use image_webp::{DecodingError, WebPDecoder};
 
 use crate::error::ResizedPngError;
 
 use super::ImageData;
 
-pub(crate) fn read_image_data(path: &PathBuf) -> Result<ImageData, ResizedPngError> {
-    let mut fs = File::open(path)?;
-    let mut bytes = Vec::new();
-    fs.read_to_end(&mut bytes)?;
-
-    let mut width = 0;
-    let mut height = 0;
-    let len = bytes.len();
-
-    let is_webp = unsafe { WebPGetInfo(bytes.as_ptr(), len, &mut width, &mut height) };
-
-    if is_webp == 0 {
-        return Err(ResizedPngError::Unsupported);
+impl From<DecodingError> for ResizedPngError {
+    fn from(value: DecodingError) -> Self {
+        match value {
+            DecodingError::IoError(_) => ResizedPngError::IoError,
+            _ => ResizedPngError::DecodingError,
+        }
     }
+}
 
-    let out_buf = unsafe { WebPDecodeRGBA(bytes.as_ptr(), len, &mut width, &mut height) };
+pub(crate) fn read_image_data(path: &PathBuf) -> Result<ImageData, ResizedPngError> {
+    let fs = File::open(path)?;
+    let buf_reader = BufReader::new(fs);
+    let mut decoder = WebPDecoder::new(buf_reader)?;
 
-    let data_raw = unsafe { slice::from_raw_parts(out_buf, (width * height * 4) as usize) };
+    let output_buffer_size = decoder
+        .output_buffer_size()
+        .ok_or(ResizedPngError::Unsupported)?;
+    let mut buffer = vec![0; output_buffer_size];
 
-    Ok((data_raw.to_vec(), width as u32, height as u32))
+    decoder.read_image(&mut buffer)?;
+
+    if !decoder.has_alpha() {
+        buffer = buffer.chunks(3).fold(Vec::new(), |mut acc, item| {
+            acc.extend(item);
+            acc.push(u8::MAX);
+            acc
+        });
+    }
+    let (width, height) = decoder.dimensions();
+
+    Ok((buffer, width, height))
 }
 
 #[cfg(test)]
