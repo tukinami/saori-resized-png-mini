@@ -10,21 +10,21 @@ description = "SAORI to resize image and save as png (limited edition)"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-resize = "0.8.4"
-rgb = "0.8.37"
-png = "0.17.13"
+resize = "0.8.8"
+rgb = "0.8.50"
+png = "0.17.15"
 gif = "0.13.1"
 jpeg-decoder = "0.3.1"
-tinybmp = "0.5.0"
+tinybmp = "0.6.0"
 embedded-graphics = "0.8.1"
-image-webp = "0.1.2"
+image-webp = "0.2.0"
 
 [target.'cfg(windows)'.dependencies]
 winapi = {version = "0.3.9", features = ["winbase", "libloaderapi", "stringapiset"]}
 
 [dev-dependencies]
-tempfile = "3.10.1"
-encoding_rs = "0.8.33"
+tempfile = "3.14.0"
+encoding_rs = "0.8.35"
 
 [lib]
 name = "resizedpngmini"
