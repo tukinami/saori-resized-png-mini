@@ -3,7 +3,7 @@ use std::{num::NonZeroU32, path::PathBuf};
 use rgb::FromSlice;
 
 use crate::error::ResizedPngError;
-use crate::image;
+use crate::image::{self, ImageData};
 
 pub(crate) fn get_image_type(src_path: &PathBuf) -> &'static str {
     if image::png::read_image_data(src_path).is_ok() {
@@ -26,11 +26,7 @@ pub(crate) fn get_image_type(src_path: &PathBuf) -> &'static str {
 }
 
 pub(crate) fn get_image_info(src_path: &PathBuf) -> Result<(i64, i64), ResizedPngError> {
-    let (_src_rgba, input_width_raw, input_height_raw) = image::png::read_image_data(src_path)
-        .or(image::bmp::read_image_data(src_path))
-        .or(image::gif::read_image_data(src_path))
-        .or(image::jpeg::read_image_data(src_path))
-        .or(image::webp::read_image_data(src_path))?;
+    let (_src_rgba, input_width_raw, input_height_raw) = read_image_data(src_path)?;
 
     let (input_width, input_height) = NonZeroU32::new(input_width_raw)
         .zip(NonZeroU32::new(input_height_raw))
@@ -45,11 +41,7 @@ pub(crate) fn to_resized_png(
     width_command: i64,
     height_command: i64,
 ) -> Result<(), ResizedPngError> {
-    let (src_rgba, input_width_raw, input_height_raw) = image::png::read_image_data(src_path)
-        .or(image::bmp::read_image_data(src_path))
-        .or(image::gif::read_image_data(src_path))
-        .or(image::jpeg::read_image_data(src_path))
-        .or(image::webp::read_image_data(src_path))?;
+    let (src_rgba, input_width_raw, input_height_raw) = read_image_data(src_path)?;
 
     let (input_width, input_height) = NonZeroU32::new(input_width_raw)
         .zip(NonZeroU32::new(input_height_raw))
@@ -83,6 +75,14 @@ pub(crate) fn to_resized_png(
     )?;
 
     Ok(())
+}
+
+fn read_image_data(src_path: &PathBuf) -> Result<ImageData, ResizedPngError> {
+    image::png::read_image_data(src_path)
+        .or(image::bmp::read_image_data(src_path))
+        .or(image::gif::read_image_data(src_path))
+        .or(image::jpeg::read_image_data(src_path))
+        .or(image::webp::read_image_data(src_path))
 }
 
 fn output_size(
