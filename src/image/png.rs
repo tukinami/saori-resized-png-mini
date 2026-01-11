@@ -1,4 +1,4 @@
-use std::io::BufWriter;
+use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use std::{borrow::Cow, fs::File};
 
@@ -10,10 +10,14 @@ use super::ImageData;
 
 pub(crate) fn read_image_data(path: &PathBuf) -> Result<ImageData, ResizedPngError> {
     let fs = File::open(path)?;
-    let decoder = Decoder::new(fs);
+    let reader = BufReader::new(fs);
+    let decoder = Decoder::new(reader);
     let mut reader = decoder.read_info()?;
 
-    let mut buf = vec![0; reader.output_buffer_size()];
+    let buf_size = reader
+        .output_buffer_size()
+        .ok_or(ResizedPngError::InputSizeError)?;
+    let mut buf = vec![0; buf_size];
     let output_info = reader.next_frame(&mut buf)?;
     let bytes = &buf[..output_info.buffer_size()];
 

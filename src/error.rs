@@ -46,8 +46,15 @@ impl From<tinybmp::ParseError> for ResizedPngError {
 impl From<gif::DecodingError> for ResizedPngError {
     fn from(e: gif::DecodingError) -> Self {
         match e {
+            gif::DecodingError::OutOfMemory => Self::LimitsError,
+            gif::DecodingError::MemoryLimit => Self::LimitsError,
+            gif::DecodingError::DecoderNotFound => Self::DecodingError,
+            gif::DecodingError::EndCodeNotFound => Self::Unsupported,
+            gif::DecodingError::UnexpectedEof => Self::Unsupported,
+            gif::DecodingError::LzwError(_) => Self::DecodingError,
             gif::DecodingError::Format(_) => Self::DecodingError,
             gif::DecodingError::Io(e) => e.into(),
+            _ => Self::DecodingError,
         }
     }
 }
